@@ -1,0 +1,705 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<meta name="color-scheme" content="dark" />
+<link rel="icon" href="data:," />
+<title>Muse 提示词生成器</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;900&family=Noto+Serif+SC:wght@700;900&display=swap" rel="stylesheet" />
+<style>
+button, [role="button"], select, summary, input:not([type="checkbox"], [type="radio"]) { min-height: 2.25rem;}
+* { box-sizing: border-box;}
+html, body{ max-width:100%; overflow-x:hidden;}
+@supports (overflow: clip){
+html, body{ overflow-x:clip;}
+}
+img, svg{ max-width:100%;}
+:root{
+--bg:#051627;
+--bg2:#071e36;
+--panel:#0a2547;
+--panel2:#0d2c52;
+--line:#174a73;
+--line-soft:#123a5c;
+--ink:#e8f4fc;
+--muted:#9dbfd9;
+--faint:#6f97b5;
+--cyan:#2fd6f2;
+--cyan-deep:#0ea5c6;
+--cyan-soft:rgba(47,214,242,.12);
+--gold:#f5c86b;
+--danger:#f08a8a;
+--radius:14px;
+}
+html{ color-scheme: dark;}
+body{
+margin:0;
+background:
+radial-gradient(900px 480px at 85% -120px, rgba(47,214,242,.10), transparent 60%),
+linear-gradient(180deg, var(--bg2), var(--bg) 340px);
+color:var(--ink);
+font-family:"Noto Sans SC", system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+line-height:1.6;
+}
+.wrap{ max-width:1180px; margin:0 auto; padding:28px 20px 56px;}
+header.top{ padding:10px 0 22px; border-bottom:1px solid var(--line-soft);}
+header.top h1{
+font-family:"Noto Serif SC", "Noto Sans SC", serif;
+font-size:clamp(28px, 4.6vw, 40px);
+font-weight:900; margin:0 0 8px; letter-spacing:.02em;
+}
+header.top h1.accent{ color:var(--cyan);}
+header.top p{ margin:0; color:var(--muted); font-size:15px; max-width:44em;}
+.steps{ display:flex; flex-wrap:wrap; gap:8px 22px; margin-top:14px; color:var(--faint); font-size:13px;}
+.steps span{ display:inline-flex; align-items:center; gap:7px;}
+.steps b{
+display:inline-flex; align-items:center; justify-content:center;
+width:20px; height:20px; border-radius:50%;
+border:1px solid var(--cyan-deep); color:var(--cyan);
+font-size:12px; font-weight:700;
+}
+main{ display:grid; grid-template-columns:minmax(0,5fr) minmax(0,7fr); gap:22px; margin-top:24px; align-items:start; width:100%;}
+.col-left, .col-right{ min-width:0; max-width:100%;}
+section.card{
+background:linear-gradient(180deg, var(--panel2), var(--panel));
+border:1px solid var(--line-soft);
+border-radius:var(--radius);
+padding:20px;
+}
+section.card + section.card{ margin-top:22px;}
+h2{ font-size:17px; font-weight:900; margin:0 0 4px; display:flex; align-items:center; gap:9px;}
+h2 svg{ flex:none;}
+.sub{ color:var(--faint); font-size:13px; margin:0 0 14px;}
+label.flabel{ display:block; font-size:13px; font-weight:700; color:var(--muted); margin:14px 0 7px;}
+label.flabel:first-of-type{ margin-top:0;}
+.input-row{ display:flex; gap:10px;}
+input[type="text"]{
+flex:1; min-width:0;
+background:#06182e; border:1px solid var(--line); border-radius:10px;
+color:var(--ink); font-size:16px; padding:10px 14px; font-family:inherit;
+}
+input[type="text"]::placeholder{ color:#54748f;}
+input[type="text"]:focus{ outline:2px solid var(--cyan-deep); outline-offset:1px; border-color:var(--cyan-deep);}
+.chips{ display:flex; flex-wrap:wrap; gap:8px;}
+.chip{
+border:1px solid var(--line); background:#08203c; color:var(--muted);
+border-radius:999px; padding:6px 13px; font-size:13px; cursor:pointer;
+font-family:inherit; min-height:36px; max-width:100%; overflow-wrap:anywhere;
+}
+.chip:hover{ border-color:var(--cyan-deep); color:var(--ink);}
+.chip.on{ background:var(--cyan-soft); border-color:var(--cyan); color:var(--cyan); font-weight:700;}
+.seg{ display:inline-flex; border:1px solid var(--line); border-radius:10px; overflow:hidden;}
+.seg button{
+background:#08203c; color:var(--muted); border:0; padding:8px 18px;
+font-size:14px; cursor:pointer; font-family:inherit; min-height:38px;
+}
+.seg button.on{ background:var(--cyan); color:#04263a; font-weight:900;}
+.cat-preview{ margin-top:14px; border-top:1px dashed var(--line-soft); padding-top:12px; display:none;}
+.cat-preview.show{ display:block;}
+.cat-preview.cap{ font-size:12px; color:var(--faint); margin-bottom:8px;}
+.cat-preview.chips span{
+border:1px solid var(--line-soft); background:rgba(47,214,242,.06); color:var(--muted);
+border-radius:8px; padding:4px 10px; font-size:12.5px; max-width:100%; overflow-wrap:anywhere;
+}
+.btn{
+display:inline-flex; align-items:center; justify-content:center; gap:8px;
+border-radius:10px; border:1px solid transparent; cursor:pointer;
+font-family:inherit; font-size:15px; font-weight:700; padding:10px 18px;
+min-height:44px;
+}
+.btn-primary{ background:var(--cyan); color:#032636; width:100%; font-size:16px; margin-top:18px;}
+.btn-primary:hover{ background:#5fe1f7;}
+.btn-ghost{ background:#08203c; border-color:var(--line); color:var(--muted); font-size:13.5px; padding:8px 14px; min-height:38px;}
+.btn-ghost:hover{ color:var(--ink); border-color:var(--cyan-deep);}
+textarea{
+width:100%; max-width:100%; min-height:430px; resize:vertical;
+background:#06182e; border:1px solid var(--line); border-radius:10px;
+color:var(--ink); font-size:13.5px; line-height:1.75; padding:14px 16px;
+font-family:ui-monospace, "SF Mono", Menlo, Consolas, "Noto Sans SC", monospace;
+}
+textarea:focus{ outline:2px solid var(--cyan-deep); outline-offset:1px;}
+.out-actions{ display:flex; flex-wrap:wrap; gap:10px; margin-top:12px; align-items:center;}
+.out-actions.spacer{ flex:1;}
+.meta-line{ color:var(--faint); font-size:12.5px;}
+.toast{
+position:fixed; left:50%; bottom:26px; transform:translateX(-50%) translateY(20px);
+background:#0d2c52; border:1px solid var(--cyan-deep); color:var(--ink);
+padding:10px 20px; border-radius:999px; font-size:14px; opacity:0; pointer-events:none;
+transition:opacity.25s, transform.25s; z-index:50; box-shadow:0 10px 30px rgba(0,0,0,.45);
+max-width:calc(100vw - 24px); text-align:center;
+}
+.toast.show{ opacity:1; transform:translateX(-50%) translateY(0);}
+/* 榜单 */
+ol.rank{ list-style:none; margin:0; padding:0; counter-reset:rk;}
+ol.rank li{
+display:flex; align-items:center; gap:12px; padding:11px 4px;
+border-bottom:1px solid var(--line-soft); cursor:pointer; border-radius:8px;
+}
+ol.rank li:last-child{ border-bottom:0;}
+ol.rank li:hover{ background:rgba(47,214,242,.05);}
+.rk-num{
+flex:none; width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center;
+font-weight:900; font-size:14px; background:#08203c; border:1px solid var(--line); color:var(--muted);
+}
+li.top1.rk-num{ background:var(--gold); border-color:var(--gold); color:#3a2a04;}
+li.top2.rk-num{ background:#cfe3f2; border-color:#cfe3f2; color:#17334d;}
+li.top3.rk-num{ background:#d99a5b; border-color:#d99a5b; color:#3a2004;}
+.rk-main{ flex:1; min-width:0;}
+.rk-name{ font-size:14.5px; font-weight:700; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.rk-sub{ font-size:12px; color:var(--faint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.rk-count{ flex:none; font-size:12px; color:var(--cyan); background:var(--cyan-soft); border-radius:999px; padding:2px 10px;}
+/* 历史 */
+.hist-head{ display:flex; align-items:center; gap:10px;}
+.hist-head h2{ flex:1;}
+ul.hist{ list-style:none; margin:6px 0 0; padding:0;}
+ul.hist li{
+display:flex; gap:10px; align-items:flex-start; padding:11px 4px;
+border-bottom:1px solid var(--line-soft); cursor:pointer; border-radius:8px;
+}
+ul.hist li:last-child{ border-bottom:0;}
+ul.hist li:hover{ background:rgba(47,214,242,.05);}
+.hist-main{ flex:1; min-width:0;}
+.hist-name{ font-size:14px; font-weight:700; overflow-wrap:anywhere;}
+.hist-prev{ font-size:12px; color:var(--faint); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.hist-time{ flex:none; font-size:12px; color:var(--faint); padding-top:2px;}
+.hist-del{
+flex:none; background:none; border:0; color:var(--faint); cursor:pointer;
+padding:6px; min-height:32px; min-width:32px; border-radius:6px; font-family:inherit;
+}
+.hist-del:hover{ color:var(--danger);}
+.empty{ color:var(--faint); font-size:13.5px; padding:14px 2px 4px;}
+footer{ margin-top:30px; color:var(--faint); font-size:12.5px; text-align:center;}
+@media (max-width: 900px){
+main{ grid-template-columns:minmax(0,1fr);}
+textarea{ min-height:340px;}
+.wrap{ padding:20px 14px 44px;}
+}
+@media (max-width: 480px){
+.wrap{ padding:16px 10px 40px;}
+section.card{ padding:16px 14px;}
+header.top h1{ font-size:26px;}
+h2{ font-size:16px; flex-wrap:wrap;}
+.seg{ display:flex; width:100%;}
+.seg button{ flex:1; padding:8px 4px;}
+.btn-primary{ font-size:15px;}
+.out-actions .btn{ flex:1 1 auto;}
+textarea{ min-height:300px; font-size:13px; padding:12px;}
+.chip{ padding:6px 11px;}
+}
+@media (prefers-reduced-motion: reduce){
+.toast{ transition:none;}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header class="top">
+<h1>Muse <span class="accent">提示词生成器</span></h1>
+<p>输入一个主题或赛道，生成一条完整的建 Space 提示词：24 小时监控、每小时更新、5–6 个分类、7 项指标打分。复制后粘贴到 Muse，就能直接建出一个同款情报 Space。</p>
+<div class="steps">
+<span><b>1</b> 输入赛道</span>
+<span><b>2</b> 点「生成提示词」</span>
+<span><b>3</b> 复制，粘贴到 Muse 建 Space</span>
+</div>
+</header>
+
+<main>
+<div class="col-left">
+<section class="card">
+<h2>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2fd6f2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+输入赛道
+</h2>
+<p class="sub">想监控什么，就写什么；下面的热门赛道点一下直接填入。</p>
+
+<label class="flabel" for="trackInput">主题 / 赛道</label>
+<div class="input-row">
+<input type="text" id="trackInput" placeholder="例如：数码产品折扣、农业科技资料、考研课程优惠…" autocomplete="off" />
+</div>
+
+<label class="flabel">热门赛道推荐</label>
+<div class="chips" id="hotChips"></div>
+
+<label class="flabel">Space 名称后缀</label>
+<div class="seg" id="suffixSeg" role="group" aria-label="Space 名称后缀">
+<button type="button" data-suffix="猎手" class="on">猎手</button>
+<button type="button" data-suffix="中心">中心</button>
+<button type="button" data-suffix="情报站">情报站</button>
+</div>
+
+<div class="cat-preview" id="catPreview">
+<div class="cap" id="catCap"></div>
+<div class="chips" id="catList"></div>
+</div>
+
+<button class="btn btn-primary" id="genBtn" type="button">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>
+生成提示词
+</button>
+</section>
+
+<section class="card">
+<h2>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#f5c86b" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 7h6v6"/><path d="m22 7-8.5 8.5-5-5L2 17"/></svg>
+本周最火的生成提示词
+</h2>
+<p class="sub">只统计你在这台设备上的生成记录，点一条直接生成同款。</p>
+<ol class="rank" id="rankList"></ol>
+<p class="empty" id="rankEmpty">本周还没有生成记录。生成几条之后，这里会按本周生成次数排出你最常用的提示词。</p>
+</section>
+
+<section class="card">
+<div class="hist-head">
+<h2>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2fd6f2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M12 7v5l4 2"/></svg>
+历史记录
+</h2>
+<button class="btn-ghost btn" id="clearHistBtn" type="button">清空</button>
+</div>
+<p class="sub">保存在这台设备上，点任意一条恢复到输出框。</p>
+<ul class="hist" id="histList"></ul>
+<p class="empty" id="histEmpty">还没有生成记录，先在上面生成第一条吧。</p>
+</section>
+</div>
+
+<div class="col-right">
+<section class="card">
+<h2>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2fd6f2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 4V2M15 10V8M11.5 6h-2M20.5 6h-2M17.8 3.7l-1.4 1.4M17.8 8.3l-1.4-1.4M12.2 3.7l1.4 1.4"/><path d="M4 21h16M6 17l-2 4h16l-2-4"/><path d="M9 17a3 3 0 1 0-3-3"/></svg>
+生成的提示词
+</h2>
+<p class="sub">内容可以直接编辑，改完再复制。复制后打开 Muse、粘贴发送，即可按这条提示词建 Space。</p>
+<textarea id="output" placeholder="点左侧「生成提示词」，完整的建 Space 提示词会出现在这里…"></textarea>
+<div class="out-actions">
+<button class="btn btn-primary" id="copyBtn" type="button" style="width:auto;margin-top:0;">
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+一键复制
+</button>
+<button class="btn btn-ghost" id="downloadBtn" type="button">下载.txt</button>
+<span class="spacer"></span>
+<span class="meta-line" id="outMeta"></span>
+</div>
+</section>
+
+<section class="card">
+<h2>
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#2fd6f2" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+生成的提示词包含什么
+</h2>
+<p class="sub">每条提示词都按同一套骨架写全，粘贴过去不用再补要求。</p>
+<div class="chips" style="gap:8px;">
+<span class="chip" style="cursor:default;">Space 名称（赛道 + 后缀）</span>
+<span class="chip" style="cursor:default;">24 小时监控范围</span>
+<span class="chip" style="cursor:default;">每小时检查更新</span>
+<span class="chip" style="cursor:default;">到期提醒与过期归档</span>
+<span class="chip" style="cursor:default;">5–6 个分类</span>
+<span class="chip" style="cursor:default;">7 项指标打分（满分 10 分）</span>
+<span class="chip" style="cursor:default;">关键词搜索</span>
+<span class="chip" style="cursor:default;">智能问答</span>
+<span class="chip" style="cursor:default;">热门情报 / 核心推荐 / 分类情报</span>
+<span class="chip" style="cursor:default;">每条 9 个字段齐全</span>
+</div>
+</section>
+</div>
+</main>
+
+<footer>生成的提示词只是起点：建好 Space 后，还可以在对话里继续让 Muse 调整分类、评分权重和监控范围。</footer>
+</div>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------- 内置赛道数据：分类与监控范围 ---------- */
+var PRESETS = [
+{
+name: "AI 产业热点资讯",
+hot: "大模型发布、融资与政策",
+monitor: "全球主要 AI 公司与研究机构的官方发布、产品更新与发布会，投融资与并购消息，政府与监管机构的 AI 政策，开源社区的热门模型与工具，以及行业媒体的深度报道",
+cats: ["大模型与新品发布", "投融资与并购", "政策法规与监管", "开源生态与技术突破", "行业应用与落地案例", "企业动态与人事"]
+},
+{
+name: "黑客与网络安全热点资讯",
+hot: "漏洞通报、攻击事件与安全工具",
+monitor: "国内外漏洞库与厂商安全公告、在野攻击与勒索事件、数据泄露通报、安全厂商研究报告、开源安全工具发布，以及网信与执法部门的政策动态",
+cats: ["重大漏洞与补丁", "攻击事件通报", "数据泄露事件", "安全工具与开源项目", "行业报告与白皮书", "政策法规与执法动态"]
+},
+{
+name: "贵州独山县热点资讯",
+hot: "独山政务、项目与民生动态",
+monitor: "独山县政府及各部门的公告通知、项目建设与招商引资进展、农业与乡村振兴消息、文旅活动、教育医疗交通等民生服务信息，以及天气与应急提醒",
+cats: ["政务与政策公告", "项目建设与招商", "农业与乡村振兴", "文旅活动", "民生服务", "天气与应急提醒"]
+},
+{
+name: "海南儋州市热点资讯",
+hot: "儋州洋浦、项目与民生动态",
+monitor: "儋州市政府及各部门公告、洋浦经济开发区的政策与项目动态、重点项目建设与招商进展、农业渔业消息、文旅赛事活动，以及教育医疗交通等民生信息",
+cats: ["政务与政策公告", "洋浦经济开发区动态", "项目建设与招商", "农业与渔业", "文旅与赛事活动", "民生与便民服务"]
+},
+{
+name: "海南省农业热点资讯",
+hot: "热带农业行情、补贴与预警",
+monitor: "海南省农业农村部门的政策与补贴申报通知、热带作物与冬季瓜菜的价格行情、农技推广与病虫害防治信息、农产品产销对接消息，以及台风暴雨等灾害预警",
+cats: ["政策补贴与项目申报", "热带作物与瓜菜行情", "农技与病虫害防治", "农产品产销与价格", "天气与灾害预警", "涉农企业与合作社动态"]
+},
+{
+name: "贵州省农业热点资讯",
+hot: "特色产业、补贴与行情",
+monitor: "贵州省农业农村部门的政策与补贴申报通知、茶叶辣椒刺梨中药材等特色产业动态、农技与病虫害防治信息、农产品价格与产销消息、乡村振兴示范项目，以及天气灾害预警",
+cats: ["政策补贴与项目申报", "特色产业动态", "农技与病虫害防治", "农产品行情与产销", "乡村振兴与示范项目", "天气与灾害预警"]
+},
+{
+name: "爵士乐吉他学习课程",
+hot: "免费课、大师班与课程优惠",
+monitor: "各大音乐教育平台与知名爵士吉他手的课程上新、免费公开课与直播、大师班与训练营招生、教材曲谱资源发布，以及课程限时优惠与早鸟价信息",
+cats: ["免费公开课与直播", "大师班与训练营", "乐理与即兴课程", "教材与曲谱资源", "名师课程优惠", "练习工具与伴奏资源"]
+},
+{
+name: "数码产品折扣",
+hot: "手机电脑、家电与教育优惠",
+monitor: "主流电商平台与品牌官网的价格变动、限时秒杀与大促预告、教育优惠与以旧换新政策、官翻与二手特价，以及新品发布带来的旧款降价",
+cats: ["手机与电脑", "影音与智能穿戴", "家电优惠", "配件与外设", "教育优惠与学生价", "官翻与二手特价"]
+},
+{
+name: "全球数字生活优惠",
+hot: "电话卡、银行、云服务与软件",
+monitor: "境外电话卡与 eSIM 促销、海外银行开户奖励、VPS 与云服务商的优惠活动、软件订阅与数字服务的限时折扣，以及航空里程与酒店积分活动",
+cats: ["境外电话卡与 eSIM", "海外银行开户优惠", "VPS 与云服务", "软件与数字服务", "航空里程与酒店积分", "即将截止与限时活动"]
+},
+{
+name: "农业科技资料",
+hot: "种植技术、智慧农业与报告",
+monitor: "农业科研机构与高校的技术成果发布、智慧农业设备与方案、植保与土壤肥料新技术、畜牧水产养殖资料、农产品加工与冷链技术，以及行业报告与论文",
+cats: ["种植技术与品种", "智慧农业与设备", "植保与土壤肥料", "畜牧水产养殖", "农产品加工与冷链", "科研论文与行业报告"]
+}
+];
+
+var INDICATORS = ["优惠力度", "平台可信度", "限额与速度", "产品吸引力与实用性", "适合用户群体", "稀缺性与紧迫性", "风险提示"];
+var FIELDS = ["标题", "描述", "详情", "来源", "到期时间", "参与链接", "成本说明", "风险提示", "综合评分"];
+
+function presetOf(name){
+for (var i = 0; i < PRESETS.length; i++) if (PRESETS[i].name === name) return PRESETS[i];
+return null;
+}
+function genericCats(t){
+return [t + "优惠与活动", t + "政策与规则变化", t + "新品与新动态", t + "实用资料与教程", t + "口碑与测评", "限时与即将截止"];
+}
+function genericMonitor(t){
+return "全网与「" + t + "」相关的官方渠道、主流平台、行业媒体和社区：新发布的优惠与活动、政策与规则变化、新品与重要动态、实用资料与教程，以及口碑测评信息";
+}
+
+/* ---------- 提示词生成 ---------- */
+function buildPrompt(track, suffix){
+var p = presetOf(track);
+var cats = p? p.cats: genericCats(track);
+var monitor = p? p.monitor: genericMonitor(track);
+var spaceName = track + suffix;
+var lines = [];
+lines.push("请帮我创建一个名为「" + spaceName + "」的 Muse Space，一个 24 小时运行的「" + track + "」情报监控中心。要求如下：");
+lines.push("");
+lines.push("");
+lines.push("24 小时持续监控：" + monitor + "。只收录来源可核实的信息，无法核实的标注「待核实」，不要编造价格、时间或活动。");
+lines.push("");
+lines.push("");
+lines.push("每小时检查一次更新，有新情报立即上架；每条情报标注来源与核实时间；活动或信息到期前要有到期提醒，到期后自动移入已结束档案，不再出现在推荐区。");
+lines.push("");
+lines.push("共 " + cats.length + " 类：");
+cats.forEach(function(c, i){ lines.push((i + 1) + ". " + c);});
+lines.push("");
+lines.push("");
+lines.push("每条情报按以下 7 项指标逐项打分，每项满分 10 分：");
+INDICATORS.forEach(function(ind, i){
+var note = ind === "风险提示"? "（风险越低分越高）": "";
+lines.push((i + 1) + ". " + ind + note);
+});
+lines.push("综合评分 = 7 项平均分，保留一位小数。评分要拉开差距，好中选优，不给买卖或参与结论，只呈现分数与依据。");
+lines.push("");
+lines.push("");
+lines.push("支持按关键词搜索全部情报；支持智能问答：我可以直接提问（例如「本周评分最高的有哪些」「还有哪些没到期」），你基于 Space 内的情报回答，并给出对应条目的链接。");
+lines.push("");
+lines.push("页面自上而下分三段：");
+lines.push("1. 热门情报：最近最受关注、时效最强的情报；");
+lines.push("2. 核心推荐：综合评分最高的一批，放在最显眼的位置；");
+lines.push("3. 分类情报：按上面 " + cats.length + " 个分类逐类浏览。");
+lines.push("");
+lines.push("");
+lines.push(FIELDS.join("、") + "。其中「到期时间」要精确到日期（有具体时刻的写明时刻），「参与链接」必须是官方页面的真实链接，「成本说明」写清价格、门槛与隐藏成本，没有成本的写「免费」。");
+lines.push("");
+lines.push("");
+lines.push("全中文界面，干净清爽；每条情报卡片显示综合评分，评分高的优先排序；同一信息不要重复收录。请现在按以上要求创建这个 Space，并生成首批情报。");
+return lines.join("\n");
+}
+
+/* ---------- 本地历史（localStorage，失败则退回内存） ---------- */
+var LS_KEY = "muse-prompt-gen-history-v1";
+var memoryFallback = [];
+function loadHistory(){
+try {
+var raw = localStorage.getItem(LS_KEY);
+if (!raw) return [];
+var arr = JSON.parse(raw);
+return Array.isArray(arr)? arr: [];
+} catch (e) { return memoryFallback.slice();}
+}
+function saveHistory(arr){
+memoryFallback = arr.slice();
+try { localStorage.setItem(LS_KEY, JSON.stringify(arr));} catch (e) {}
+}
+
+/* ---------- DOM ---------- */
+var input = document.getElementById("trackInput");
+var hotChips = document.getElementById("hotChips");
+var catPreview = document.getElementById("catPreview");
+var catCap = document.getElementById("catCap");
+var catList = document.getElementById("catList");
+var output = document.getElementById("output");
+var outMeta = document.getElementById("outMeta");
+var histList = document.getElementById("histList");
+var histEmpty = document.getElementById("histEmpty");
+var rankList = document.getElementById("rankList");
+var toast = document.getElementById("toast");
+var suffix = "猎手";
+var toastTimer = null;
+
+function showToast(msg){
+toast.textContent = msg;
+toast.classList.add("show");
+if (toastTimer) clearTimeout(toastTimer);
+toastTimer = setTimeout(function(){ toast.classList.remove("show");}, 2200);
+}
+
+/* 热门赛道 chips */
+PRESETS.forEach(function(p){
+var b = document.createElement("button");
+b.type = "button";
+b.className = "chip";
+b.textContent = p.name;
+b.addEventListener("click", function(){
+input.value = p.name;
+refreshChips();
+input.focus();
+});
+hotChips.appendChild(b);
+});
+function refreshChips(){
+var v = input.value.trim();
+var kids = hotChips.children;
+for (var i = 0; i < kids.length; i++) kids[i].classList.toggle("on", kids[i].textContent === v);
+var p = presetOf(v);
+if (p) {
+catCap.textContent = "「" + p.name + "」已内置现成分类，生成时直接套用：";
+catList.innerHTML = "";
+p.cats.forEach(function(c){
+var s = document.createElement("span");
+s.textContent = c;
+catList.appendChild(s);
+});
+catPreview.classList.add("show");
+} else if (v) {
+catCap.textContent = "「" + v + "」没有内置分类，生成时按通用骨架自动拆成 6 类：";
+catList.innerHTML = "";
+genericCats(v).forEach(function(c){
+var s = document.createElement("span");
+s.textContent = c;
+catList.appendChild(s);
+});
+catPreview.classList.add("show");
+} else {
+catPreview.classList.remove("show");
+}
+}
+input.addEventListener("input", refreshChips);
+input.addEventListener("keydown", function(e){ if (e.key === "Enter") generate();});
+
+/* 后缀切换 */
+var segBtns = document.querySelectorAll("#suffixSeg button");
+segBtns.forEach(function(b){
+b.addEventListener("click", function(){
+segBtns.forEach(function(x){ x.classList.remove("on");});
+b.classList.add("on");
+suffix = b.getAttribute("data-suffix");
+});
+});
+
+function updateMeta(){
+var n = output.value.length;
+outMeta.textContent = n? ("共 " + n + " 字"): "";
+}
+output.addEventListener("input", updateMeta);
+
+/* 生成 */
+function generate(){
+var track = input.value.trim();
+if (!track) { showToast("先输入一个主题或赛道"); input.focus(); return;}
+var prompt = buildPrompt(track, suffix);
+output.value = prompt;
+updateMeta();
+var hist = loadHistory();
+hist.unshift({ track: track, suffix: suffix, prompt: prompt, ts: Date.now()});
+if (hist.length > 30) hist = hist.slice(0, 30);
+saveHistory(hist);
+renderHistory();
+renderRank();
+showToast("已生成「" + track + suffix + "」提示词");
+if (window.innerWidth <= 900) output.scrollIntoView({ behavior: "smooth", block: "start"});
+}
+document.getElementById("genBtn").addEventListener("click", generate);
+
+/* 复制 */
+document.getElementById("copyBtn").addEventListener("click", function(){
+var text = output.value;
+if (!text.trim()) { showToast("输出框是空的，先生成一条提示词"); return;}
+function done(){ showToast("已复制，粘贴到 Muse 即可建 Space");}
+if (navigator.clipboard && navigator.clipboard.writeText) {
+navigator.clipboard.writeText(text).then(done, function(){ fallbackCopy();});
+} else fallbackCopy();
+function fallbackCopy(){
+output.focus();
+output.select();
+try { document.execCommand("copy"); done();}
+catch (e) { showToast("复制失败，请长按选中文本手动复制");}
+}
+});
+
+/* 下载 */
+document.getElementById("downloadBtn").addEventListener("click", function(){
+var text = output.value;
+if (!text.trim()) { showToast("输出框是空的，先生成一条提示词"); return;}
+var track = input.value.trim() || "提示词";
+var blob = new Blob([text], { type: "text/plain;charset=utf-8"});
+var url = URL.createObjectURL(blob);
+var a = document.createElement("a");
+a.href = url;
+a.download = track + suffix + "-建Space提示词.txt";
+document.body.appendChild(a);
+a.click();
+document.body.removeChild(a);
+setTimeout(function(){ URL.revokeObjectURL(url);}, 800);
+});
+
+/* 历史渲染 */
+function fmtTime(ts){
+var d = new Date(ts);
+var now = new Date();
+var sameDay = d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+var hh = ("0" + d.getHours()).slice(-2), mm = ("0" + d.getMinutes()).slice(-2);
+if (sameDay) return "今天 " + hh + ":" + mm;
+return (d.getMonth() + 1) + "月" + d.getDate() + "日 " + hh + ":" + mm;
+}
+function renderHistory(){
+var hist = loadHistory();
+histList.innerHTML = "";
+histEmpty.style.display = hist.length? "none": "block";
+hist.forEach(function(item, idx){
+var li = document.createElement("li");
+var main = document.createElement("div");
+main.className = "hist-main";
+var nm = document.createElement("div");
+nm.className = "hist-name";
+nm.textContent = item.track + item.suffix;
+var pv = document.createElement("div");
+pv.className = "hist-prev";
+pv.textContent = item.prompt.split("\n")[0];
+main.appendChild(nm); main.appendChild(pv);
+var tm = document.createElement("span");
+tm.className = "hist-time";
+tm.textContent = fmtTime(item.ts);
+var del = document.createElement("button");
+del.type = "button";
+del.className = "hist-del";
+del.setAttribute("aria-label", "删除这条记录");
+del.innerHTML = '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/><path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>';
+del.addEventListener("click", function(ev){
+ev.stopPropagation();
+var h = loadHistory();
+h.splice(idx, 1);
+saveHistory(h);
+renderHistory();
+renderRank();
+});
+li.appendChild(main); li.appendChild(tm); li.appendChild(del);
+li.addEventListener("click", function(){
+input.value = item.track;
+suffix = item.suffix || "猎手";
+segBtns.forEach(function(x){ x.classList.toggle("on", x.getAttribute("data-suffix") === suffix);});
+output.value = item.prompt;
+updateMeta();
+refreshChips();
+showToast("已恢复「" + item.track + item.suffix + "」");
+});
+histList.appendChild(li);
+});
+}
+document.getElementById("clearHistBtn").addEventListener("click", function(){
+if (!loadHistory().length) { showToast("历史记录已经是空的"); return;}
+saveHistory([]);
+renderHistory();
+renderRank();
+showToast("历史记录已清空");
+});
+
+/* 本周榜：只统计本机近 7 天的真实生成记录 */
+function renderRank(){
+var hist = loadHistory();
+var weekAgo = Date.now() - 7 * 24 * 3600 * 1000;
+var counts = {};
+hist.forEach(function(h){ if (h.ts >= weekAgo) counts[h.track] = (counts[h.track] || 0) + 1;});
+var rows = Object.keys(counts).map(function(name){
+var p = presetOf(name);
+return {
+name: name,
+hot: p ? p.hot : "自定义赛道",
+base: p ? (PRESETS.length - PRESETS.indexOf(p)) : 0,
+count: counts[name]
+};
+});
+rows.sort(function(a, b){
+if (b.count !== a.count) return b.count - a.count;
+return b.base - a.base;
+});
+var rankEmpty = document.getElementById("rankEmpty");
+rankEmpty.style.display = rows.length ? "none" : "block";
+rankList.innerHTML = "";
+rows.slice(0, 5).forEach(function(r, i){
+var li = document.createElement("li");
+if (i === 0) li.className = "top1"; else if (i === 1) li.className = "top2"; else if (i === 2) li.className = "top3";
+var num = document.createElement("span");
+num.className = "rk-num";
+num.textContent = String(i + 1);
+var main = document.createElement("div");
+main.className = "rk-main";
+var nm = document.createElement("div");
+nm.className = "rk-name";
+nm.textContent = r.name + suffix;
+var sb2 = document.createElement("div");
+sb2.className = "rk-sub";
+sb2.textContent = r.hot;
+main.appendChild(nm); main.appendChild(sb2);
+li.appendChild(num); li.appendChild(main);
+if (r.count > 0) {
+var c = document.createElement("span");
+c.className = "rk-count";
+c.textContent = "本周已生成 " + r.count + " 次";
+li.appendChild(c);
+}
+li.addEventListener("click", function(){
+input.value = r.name;
+refreshChips();
+generate();
+});
+rankList.appendChild(li);
+});
+}
+
+renderHistory();
+renderRank();
+refreshChips();
+})();
+</script>
+</body>
+</html>
